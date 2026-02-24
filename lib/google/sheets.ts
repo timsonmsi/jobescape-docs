@@ -117,8 +117,10 @@ export async function updateSheetCells(
 }
 
 /**
- * Ensure a sheet with the given name exists. If it doesn't, create it and
- * write the provided header row.
+ * Ensure a sheet with the given name exists with the correct headers.
+ * - If the sheet doesn't exist: creates it and writes the header row.
+ * - If it exists but is missing columns (e.g. a column was added later):
+ *   updates row 1 to include all expected headers, preserving existing ones.
  */
 export async function ensureSheetExists(
   sheetName: string,
@@ -128,31 +130,51 @@ export async function ensureSheetExists(
   return withRetry(async () => {
     const sheets = getSheetsClient();
     const meta = await sheets.spreadsheets.get({ spreadsheetId });
-    const existing = meta.data.sheets?.map((s) => s.properties?.title) ?? [];
+    const existingTitles = meta.data.sheets?.map((s) => s.properties?.title) ?? [];
 
-    if (existing.includes(sheetName)) return;
-
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId,
-      requestBody: {
-        requests: [
-          {
-            addSheet: {
-              properties: {
-                title: sheetName,
-                gridProperties: { rowCount: 1000, columnCount: headers.length },
+    if (!existingTitles.includes(sheetName)) {
+      // Create the sheet
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title: sheetName,
+                  gridProperties: { rowCount: 1000, columnCount: headers.length },
+                },
               },
             },
-          },
-        ],
-      },
-    });
+          ],
+        },
+      });
+      // Write headers
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sheetName}!A1`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: [headers] },
+      });
+      return;
+    }
 
-    await sheets.spreadsheets.values.update({
+    // Sheet exists — check if header row is up to date
+    const headerRes = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A1`,
-      valueInputOption: "USER_ENTERED",
-      requestBody: { values: [headers] },
+      range: `${sheetName}!1:1`,
     });
+    const existingHeaders: string[] = headerRes.data.values?.[0] ?? [];
+    const missingHeaders = headers.filter((h) => !existingHeaders.includes(h));
+
+    if (missingHeaders.length > 0) {
+      // Rewrite row 1 with the full expected header list
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sheetName}!A1`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: [headers] },
+      });
+    }
   });
 }

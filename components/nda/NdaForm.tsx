@@ -240,7 +240,7 @@ export function NdaForm() {
             className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
           >
             <ExternalLink size={14} />
-            Open PDF
+            Open NDA
           </a>
           <p className="text-xs text-gray-400 mt-1">ID: {result.agreementId}</p>
         </div>

@@ -3,7 +3,6 @@ import { MonthYearPicker } from "@/components/invoices/MonthYearPicker";
 import { getSheetRows } from "@/lib/google/sheets";
 import type { InvoiceRow, EmployeeRow } from "@/types/invoice";
 import { AlertCircle, FolderOpen } from "lucide-react";
-import { format } from "date-fns";
 
 // TODO(auth): Add session check here
 

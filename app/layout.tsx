@@ -23,7 +23,7 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`}>
         <div className="flex h-screen overflow-hidden">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto p-6 bg-slate-50">
+          <main className="flex-1 overflow-y-auto bg-slate-50 p-6 pt-20 md:pt-6">
             {children}
           </main>
         </div>

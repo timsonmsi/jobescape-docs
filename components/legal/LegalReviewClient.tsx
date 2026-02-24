@@ -123,13 +123,13 @@ export function LegalReviewClient({ initialHistory = [] }: Props) {
       </div>
 
       {/* Right: report */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 w-full overflow-hidden">
         {activeReport && (
           <>
             {selectedRow && (
-              <div className="flex items-center gap-2 mb-3 text-sm text-gray-500">
-                <FileText size={14} className="text-gray-400" />
-                <span className="truncate">{selectedRow.filename}</span>
+              <div className="flex items-center gap-2 mb-3 text-sm text-gray-500 overflow-hidden">
+                <FileText size={14} className="shrink-0 text-gray-400" />
+                <span className="truncate flex-1 min-w-0">{selectedRow.filename}</span>
                 <span className="ml-auto text-xs shrink-0">{formatDate(selectedRow.created_at)}</span>
               </div>
             )}

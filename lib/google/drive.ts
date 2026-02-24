@@ -95,17 +95,36 @@ export async function downloadDriveFile(fileId: string): Promise<Buffer> {
 }
 
 /**
- * Find the first file whose name contains `namePattern` inside `folderId`.
- * Returns the file ID or null if not found.
+ * Find the first file whose name contains `namePattern`.
+ * Strategy:
+ *   1. Search inside `folderId` (works when folder is shared with the service account).
+ *   2. If that fails or returns nothing, fall back to a global search across all
+ *      files visible to the service account (works when individual files are shared).
+ * Returns the file ID or null if not found anywhere.
  */
 export async function findDriveFileByName(
   folderId: string,
   namePattern: string
 ): Promise<string | null> {
-  return withRetry(async () => {
-    const drive = getDriveClient();
+  const drive = getDriveClient();
+
+  // Attempt 1: folder-scoped search
+  try {
     const res = await drive.files.list({
       q: `name contains '${namePattern}' and '${folderId}' in parents and trashed=false`,
+      fields: "files(id,name)",
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+    if (res.data.files?.length) return res.data.files[0].id!;
+  } catch {
+    // Folder not accessible to service account — fall through to global search
+  }
+
+  // Attempt 2: global search (finds files directly shared with the service account)
+  return withRetry(async () => {
+    const res = await drive.files.list({
+      q: `name contains '${namePattern}' and trashed=false`,
       fields: "files(id,name)",
       supportsAllDrives: true,
       includeItemsFromAllDrives: true,

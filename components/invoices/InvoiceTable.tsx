@@ -241,7 +241,7 @@ export function InvoiceTable({ invoices: initialInvoices, employeeMap, sheetName
                         className="inline-flex items-center gap-1 text-xs text-[#2B45F5] hover:underline"
                       >
                         <ExternalLink size={12} />
-                        Open PDF
+                        Open
                       </a>
                     )}
                   </div>

@@ -45,7 +45,7 @@ export function GenerateButton({ invoiceNumber, sheetName, onSuccess }: Generate
       ) : (
         <FileDown size={14} />
       )}
-      <span className="ml-1.5">{loading ? "Generating…" : "Generate PDF"}</span>
+      <span className="ml-1.5">{loading ? "Generating…" : "Generate Invoice"}</span>
     </Button>
   );
 }

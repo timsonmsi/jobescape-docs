@@ -11,7 +11,7 @@ import {
 import { renderDocxTemplate } from "@/lib/docx/render";
 
 import { sanitizeFilename } from "@/lib/utils/sanitize";
-import { saveToGoogleDrive } from "@/lib/utils/driveStore";
+import { saveToBlob } from "@/lib/utils/blobStore";
 import type { NdaGenerateInput } from "@/types/nda";
 
 const AGREEMENTS_HEADERS = [
@@ -92,7 +92,7 @@ export async function generateNda(
   const filename = sanitizeFilename(
     `NDA_${input.disclosure_party}_${input.receiving_type}_${input.effective_date}_${receiverLabel}.docx`
   );
-  const pdfPath = await saveToGoogleDrive(`nda/${monthFolder}`, filename, docxBuffer);
+  const pdfPath = await saveToBlob(`nda/${monthFolder}`, filename, docxBuffer);
 
   // 6. Append to Agreements sheet in logs spreadsheet
   const now = new Date().toISOString();

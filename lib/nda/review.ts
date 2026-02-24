@@ -1,5 +1,5 @@
 import { appendSheetRow, ensureSheetExists } from "@/lib/google/sheets";
-import { saveToGoogleDrive } from "@/lib/utils/driveStore";
+import { saveToBlob } from "@/lib/utils/blobStore";
 import { format } from "date-fns";
 import { v4 as uuid } from "uuid";
 import type { RiskReport, NdaReviewRow } from "@/types/legal";
@@ -156,7 +156,7 @@ export async function reviewNdaDocument(
   const monthFolder = format(new Date(), "yyyy-MM");
   const reviewId = uuid();
   const reportFilename = `NdaReview_${filename}_${reviewId.slice(0, 8)}.txt`;
-  const reportPath = await saveToGoogleDrive(
+  const reportPath = await saveToBlob(
     `nda-reviews/${monthFolder}`,
     reportFilename,
     Buffer.from(formatReport(report, filename), "utf-8")

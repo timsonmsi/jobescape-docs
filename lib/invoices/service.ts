@@ -8,7 +8,7 @@ import {
 import { renderDocxTemplate } from "@/lib/docx/render";
 
 import { sanitizeFilename } from "@/lib/utils/sanitize";
-import { saveToGoogleDrive } from "@/lib/utils/driveStore";
+import { saveToBlob } from "@/lib/utils/blobStore";
 import type { InvoiceRow, EmployeeRow } from "@/types/invoice";
 
 export interface GenerateInvoiceResult {
@@ -99,7 +99,7 @@ export async function generateInvoicePdf(
   const filename = sanitizeFilename(
     `${invoice.invoice_number}_${employee.supplier_name}.docx`
   );
-  const pdfPath = await saveToGoogleDrive(
+  const pdfPath = await saveToBlob(
     `invoices/${monthFolder}`,
     filename,
     docxBuffer

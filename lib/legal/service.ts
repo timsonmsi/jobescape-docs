@@ -1,7 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { format } from "date-fns";
 import { appendSheetRow, ensureSheetExists } from "@/lib/google/sheets";
-import { saveToGoogleDrive } from "@/lib/utils/driveStore";
+import { saveToBlob } from "@/lib/utils/blobStore";
 import type { RiskReport, LegalReviewRow } from "@/types/legal";
 
 const LEGAL_REVIEWS_HEADERS = [
@@ -184,7 +184,7 @@ export async function reviewLegalDocument(
   const reviewId = uuid();
   const reportFilename = `LegalReview_${filename}_${reviewId.slice(0, 8)}.txt`;
   const reportText = formatReportAsText(report, filename);
-  const reportPath = await saveToGoogleDrive(
+  const reportPath = await saveToBlob(
     `legal/${monthFolder}`,
     reportFilename,
     Buffer.from(reportText, "utf-8")

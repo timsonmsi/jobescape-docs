@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "app/api/invoices/[id]/generate/route.ts": { "maxDuration": 60 },
+    "app/api/nda/generate/route.ts": { "maxDuration": 60 },
+    "app/api/nda/review/route.ts": { "maxDuration": 60 },
+    "app/api/legal/review/route.ts": { "maxDuration": 60 }
+  }
+}

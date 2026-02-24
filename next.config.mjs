@@ -9,6 +9,9 @@ const nextConfig = {
       "mammoth",
       "pdf-parse",
     ],
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
   },
 };
 

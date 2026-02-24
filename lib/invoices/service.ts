@@ -6,7 +6,7 @@ import {
   getDriveFileMeta,
 } from "@/lib/google/drive";
 import { renderDocxTemplate } from "@/lib/docx/render";
-import { convertDocxToPdf } from "@/lib/pdf/convert";
+
 import { sanitizeFilename } from "@/lib/utils/sanitize";
 import { saveToGoogleDrive } from "@/lib/utils/driveStore";
 import type { InvoiceRow, EmployeeRow } from "@/types/invoice";
@@ -94,18 +94,15 @@ export async function generateInvoicePdf(
   // 7. Render DOCX with data
   const docxBuffer = renderDocxTemplate(templateBuffer, templateData);
 
-  // 8. Convert to PDF
-  const pdfBuffer = await convertDocxToPdf(docxBuffer);
-
-  // 9. Upload PDF to Google Drive under Generated/invoices/YYYY-MM/
+  // 8. Upload DOCX to Google Drive under Generated/invoices/YYYY-MM/
   const monthFolder = format(new Date(), "yyyy-MM");
   const filename = sanitizeFilename(
-    `${invoice.invoice_number}_${employee.supplier_name}.pdf`
+    `${invoice.invoice_number}_${employee.supplier_name}.docx`
   );
   const pdfPath = await saveToGoogleDrive(
     `invoices/${monthFolder}`,
     filename,
-    pdfBuffer
+    docxBuffer
   );
 
   // 10. Write back to Sheets (data row index is 1-based)

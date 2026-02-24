@@ -9,7 +9,7 @@ import {
   findDriveFileByName,
 } from "@/lib/google/drive";
 import { renderDocxTemplate } from "@/lib/docx/render";
-import { convertDocxToPdf } from "@/lib/pdf/convert";
+
 import { sanitizeFilename } from "@/lib/utils/sanitize";
 import { saveToGoogleDrive } from "@/lib/utils/driveStore";
 import type { NdaGenerateInput } from "@/types/nda";
@@ -82,10 +82,7 @@ export async function generateNda(
   }
   const docxBuffer = renderDocxTemplate(templateBuffer, templateData);
 
-  // 4. Convert to PDF
-  const pdfBuffer = await convertDocxToPdf(docxBuffer);
-
-  // 5. Save PDF locally under public/generated/nda/YYYY-MM/
+  // 4. Upload DOCX to Google Drive under Generated/nda/YYYY-MM/
   const monthFolder = format(new Date(), "yyyy-MM");
   const agreementId = uuid();
   const receiverLabel =
@@ -93,9 +90,9 @@ export async function generateNda(
       ? (input.recv_full_name ?? "Individual")
       : (input.recv_company_name ?? "Company");
   const filename = sanitizeFilename(
-    `NDA_${input.disclosure_party}_${input.receiving_type}_${input.effective_date}_${receiverLabel}.pdf`
+    `NDA_${input.disclosure_party}_${input.receiving_type}_${input.effective_date}_${receiverLabel}.docx`
   );
-  const pdfPath = await saveToGoogleDrive(`nda/${monthFolder}`, filename, pdfBuffer);
+  const pdfPath = await saveToGoogleDrive(`nda/${monthFolder}`, filename, docxBuffer);
 
   // 6. Append to Agreements sheet in logs spreadsheet
   const now = new Date().toISOString();

@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "JobEscape Ops",
-  description: "Internal document operations suite for JobEscape",
+  title: "DocEscape Ops",
+  description: "Internal document operations suite for DocEscape",
 };
 
 // TODO(auth): Wrap children with session provider when adding auth

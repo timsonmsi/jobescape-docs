@@ -22,14 +22,14 @@ export function Sidebar() {
         <div className="flex items-center gap-2.5">
           <Image
             src="/je_logo.png"
-            alt="JobEscape"
+            alt="DocEscape"
             width={36}
             height={36}
             className="rounded-xl shrink-0"
           />
           <div>
             <span className="text-base font-bold text-gray-900 leading-tight block">
-              JobEscape
+              DocEscape
             </span>
             <span className="text-xs text-gray-400 leading-tight block">
               Ops Suite
@@ -66,7 +66,7 @@ export function Sidebar() {
       </nav>
 
       <div className="px-5 mt-auto pt-4 border-t border-gray-100">
-        <p className="text-xs text-gray-400">JobEscape Ops v0.1</p>
+        <p className="text-xs text-gray-400">DocEscape Ops v0.1</p>
         {/* TODO(auth): Add user profile / logout here */}
       </div>
     </aside>

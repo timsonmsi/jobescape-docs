@@ -34,36 +34,53 @@ export interface GenerateNdaResult {
 }
 
 /**
- * Generate an NDA PDF from a Drive DOCX template, upload it, and record it
- * in the Agreements sheet.
+ * Generate an NDA DOCX from a Drive template, upload it to Blob, and record
+ * it in the Agreements sheet.
  */
 export async function generateNda(
   input: NdaGenerateInput
 ): Promise<GenerateNdaResult> {
+  // Guard: required env vars
+  const logsSheetId = process.env.LOGS_SHEETS_ID;
+  if (!logsSheetId) throw new Error("Missing environment variable: LOGS_SHEETS_ID");
+  const templateFolderId = process.env.DRIVE_NDA_TEMPLATES_FOLDER_ID;
+  if (!templateFolderId) throw new Error("Missing environment variable: DRIVE_NDA_TEMPLATES_FOLDER_ID");
+  if (!process.env.BLOB_READ_WRITE_TOKEN) throw new Error("Missing environment variable: BLOB_READ_WRITE_TOKEN");
+
   // 1. Ensure Agreements sheet exists in the logs spreadsheet
-  const logsSheetId = process.env.LOGS_SHEETS_ID!;
   await ensureSheetExists("Agreements", AGREEMENTS_HEADERS, logsSheetId);
 
   // 2. Find the right NDA template in Drive
-  //    Actual naming: NDA_${disclosure_party}_${receiving_type_lowercase}_TEMPLATE.docx
+  //    Expected name pattern: NDA_${disclosure_party}_${receiving_type_lowercase}_TEMPLATE
   //    e.g. NDA_NomadVentures_individual_TEMPLATE.docx
   const templateNamePattern = `NDA_${input.disclosure_party}_${input.receiving_type.toLowerCase()}_TEMPLATE`;
-  const templateFolderId = process.env.DRIVE_NDA_TEMPLATES_FOLDER_ID!;
 
-  const templateFileId = await findDriveFileByName(
-    templateFolderId,
-    templateNamePattern
-  );
+  let templateFileId: string | null;
+  try {
+    templateFileId = await findDriveFileByName(templateFolderId, templateNamePattern);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to search NDA templates folder (ID: ${templateFolderId}): ${msg}`);
+  }
+
   if (!templateFileId) {
     throw new Error(
       `NDA template not found for ${input.disclosure_party} / ${input.receiving_type}. ` +
-      `Expected file containing "${templateNamePattern}" in the NDA templates folder.`
+      `Expected a file whose name contains "${templateNamePattern}" in Drive folder ID "${templateFolderId}". ` +
+      `Please verify the file exists and the service account has Viewer access to it.`
     );
   }
 
-  // 3. Download and render the template
-  //    Build template data from the typed input (only pass defined fields)
-  const templateBuffer = await downloadDriveFile(templateFileId);
+  // 3. Download the template
+  let templateBuffer: Buffer;
+  try {
+    templateBuffer = await downloadDriveFile(templateFileId);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to download NDA template (file ID: ${templateFileId}): ${msg}`);
+  }
+
+  // 4. Render the template with input data
   const templateData: Record<string, string> = {
     effective_date: input.effective_date,
     purpose: input.purpose,
@@ -82,7 +99,7 @@ export async function generateNda(
   }
   const docxBuffer = renderDocxTemplate(templateBuffer, templateData);
 
-  // 4. Upload DOCX to Google Drive under Generated/nda/YYYY-MM/
+  // 5. Upload DOCX to Vercel Blob under nda/YYYY-MM/
   const monthFolder = format(new Date(), "yyyy-MM");
   const agreementId = uuid();
   const receiverLabel =

@@ -8,7 +8,7 @@ export default function DashboardPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          JobEscape Ops Dashboard
+          DocEscape Ops Dashboard
         </h1>
         <p className="text-gray-500 text-sm mt-1">
           Generate invoices, NDAs, and review legal documents.

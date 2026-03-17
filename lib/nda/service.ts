@@ -1,5 +1,4 @@
 import { v4 as uuid } from "uuid";
-import { format } from "date-fns";
 import {
   appendSheetRow,
   ensureSheetExists,

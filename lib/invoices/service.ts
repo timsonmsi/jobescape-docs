@@ -55,8 +55,7 @@ export async function generateInvoiceDoc(
   // 5. Build invoice number and date info from sheet name (e.g. "March-2026")
   const [monthName, yearStr] = sheetName.split("-");
   const monthNum = MONTH_NUMBERS[monthName] ?? "01";
-  const rowNum = String(invoiceIndex + 1).padStart(3, "0");
-  const invoiceNumber = `INV-${yearStr}-${monthNum}-${rowNum}`;
+  const invoiceNumber = `${yearStr}-${monthNum}-${employeeId.padStart(3, "0")}`;
 
   // Find the last Friday of the month, then pick a random date
   // in the window [lastFriday - 9, lastFriday - 3] so the invoice

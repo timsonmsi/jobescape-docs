@@ -31,7 +31,7 @@ export async function generateInvoiceDoc(
   const [invoiceRows, employeeRows, company] = await Promise.all([
     getSheetRows<InvoiceRow>(sheetName),
     getSheetRows<EmployeeRow>("Employees"),
-    getKeyValueSheet("Company") as Promise<CompanyRow>,
+    getKeyValueSheet("Company") as unknown as Promise<CompanyRow>,
   ]);
 
   // 2. Find the invoice row for this employee

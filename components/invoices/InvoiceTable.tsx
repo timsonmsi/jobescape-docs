@@ -16,8 +16,8 @@ interface InvoiceTableProps {
 
 const STATUS_COLORS: Record<string, string> = {
   generated: "bg-green-100 text-green-700 border-green-200",
-  pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  error: "bg-red-100 text-red-700 border-red-200",
+  pending:   "bg-yellow-100 text-yellow-700 border-yellow-200",
+  error:     "bg-red-100 text-red-700 border-red-200",
 };
 
 export function InvoiceTable({ invoices: initialInvoices, employeeMap, sheetName }: InvoiceTableProps) {
@@ -28,50 +28,47 @@ export function InvoiceTable({ invoices: initialInvoices, employeeMap, sheetName
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  // Sync when server sends fresh data after router.refresh()
   useEffect(() => {
     setInvoices(initialInvoices);
     setSelected(new Set());
   }, [initialInvoices]);
 
   const allSelected =
-    invoices.length > 0 && invoices.every((inv) => selected.has(inv.invoice_number));
+    invoices.length > 0 && invoices.every((inv) => selected.has(inv.employee_id));
 
-  const handleGenerated = (invoiceNumber: string, pdfUrl: string) => {
+  const handleGenerated = (employeeId: string, driveLink: string) => {
     setInvoices((prev) =>
       prev.map((row) =>
-        row.invoice_number === invoiceNumber
-          ? { ...row, status: "generated", pdf_url: pdfUrl }
+        row.employee_id === employeeId
+          ? { ...row, status: "generated", drive_link: driveLink }
           : row
       )
     );
   };
 
   const handleRefresh = () => {
-    startTransition(() => {
-      router.refresh();
-    });
+    startTransition(() => { router.refresh(); });
   };
 
   const handleSelectAll = () => {
     if (allSelected) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(invoices.map((inv) => inv.invoice_number)));
+      setSelected(new Set(invoices.map((inv) => inv.employee_id)));
     }
   };
 
-  const handleToggle = (invoiceNumber: string) => {
+  const handleToggle = (employeeId: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(invoiceNumber)) next.delete(invoiceNumber);
-      else next.add(invoiceNumber);
+      if (next.has(employeeId)) next.delete(employeeId);
+      else next.add(employeeId);
       return next;
     });
   };
 
   const handleBulkGenerate = async () => {
-    const toGenerate = invoices.filter((inv) => selected.has(inv.invoice_number));
+    const toGenerate = invoices.filter((inv) => selected.has(inv.employee_id));
     if (toGenerate.length === 0) return;
 
     setBulkGenerating(true);
@@ -82,16 +79,16 @@ export function InvoiceTable({ invoices: initialInvoices, employeeMap, sheetName
       const inv = toGenerate[i];
       try {
         const res = await fetch(
-          `/api/invoices/${encodeURIComponent(inv.invoice_number)}/generate?sheet=${encodeURIComponent(sheetName)}`,
+          `/api/invoices/${encodeURIComponent(inv.employee_id)}/generate?sheet=${encodeURIComponent(sheetName)}`,
           { method: "POST" }
         );
         const json = await res.json();
         if (!json.ok) throw new Error(json.message);
-        handleGenerated(inv.invoice_number, json.data.pdfUrl);
+        handleGenerated(inv.employee_id, json.data.driveLink);
         successCount++;
       } catch (err) {
         toast.error(
-          `${inv.invoice_number}: ${err instanceof Error ? err.message : "Failed"}`
+          `${employeeMap[inv.employee_id] ?? inv.employee_id}: ${err instanceof Error ? err.message : "Failed"}`
         );
       }
       setBulkProgress({ done: i + 1, total: toGenerate.length });
@@ -105,20 +102,13 @@ export function InvoiceTable({ invoices: initialInvoices, employeeMap, sheetName
     }
   };
 
-  if (invoices.length === 0) {
-    return null; // empty state is handled by the page
-  }
+  if (invoices.length === 0) return null;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Toolbar */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 flex-wrap">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleSelectAll}
-          className="text-gray-600"
-        >
+        <Button size="sm" variant="outline" onClick={handleSelectAll} className="text-gray-600">
           {allSelected ? "Deselect All" : "Select All"}
         </Button>
 
@@ -177,7 +167,7 @@ export function InvoiceTable({ invoices: initialInvoices, employeeMap, sheetName
                   className="rounded border-gray-300 text-[#2B45F5] focus:ring-[#2B45F5] cursor-pointer"
                 />
               </th>
-              {["Invoice #", "Date", "Due", "Period", "Employee", "Amount (KZT)", "Status", "Actions"].map((h) => (
+              {["Employee", "Amount (USD)", "Invoice #", "Status", "Actions"].map((h) => (
                 <th
                   key={h}
                   className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide"
@@ -190,32 +180,31 @@ export function InvoiceTable({ invoices: initialInvoices, employeeMap, sheetName
           <tbody className="divide-y divide-gray-50">
             {invoices.map((inv) => (
               <tr
-                key={inv.invoice_number}
+                key={inv.employee_id}
                 className={`transition-colors ${
-                  selected.has(inv.invoice_number)
-                    ? "bg-[#ECEFFE]/60"
-                    : "hover:bg-gray-50/60"
+                  selected.has(inv.employee_id) ? "bg-[#ECEFFE]/60" : "hover:bg-gray-50/60"
                 }`}
               >
                 <td className="px-4 py-3">
                   <input
                     type="checkbox"
-                    checked={selected.has(inv.invoice_number)}
-                    onChange={() => handleToggle(inv.invoice_number)}
+                    checked={selected.has(inv.employee_id)}
+                    onChange={() => handleToggle(inv.employee_id)}
                     className="rounded border-gray-300 text-[#2B45F5] focus:ring-[#2B45F5] cursor-pointer"
                   />
                 </td>
-                <td className="px-4 py-3 font-mono text-xs text-gray-700">
-                  {inv.invoice_number}
+                <td className="px-4 py-3 text-gray-800 font-medium">
+                  {inv.first_name && inv.last_name
+                    ? `${inv.first_name} ${inv.last_name}`
+                    : employeeMap[inv.employee_id] ?? inv.employee_id}
                 </td>
-                <td className="px-4 py-3 text-gray-600">{inv.invoice_date}</td>
-                <td className="px-4 py-3 text-gray-600">{inv.due_date}</td>
-                <td className="px-4 py-3 text-gray-600">{inv.service_period}</td>
-                <td className="px-4 py-3 text-gray-600">
-                  {employeeMap[inv.employee_id] ?? inv.employee_id}
+                <td className="px-4 py-3 text-gray-700">
+                  {inv.amount
+                    ? `${Number(inv.amount.replace(/,/g, "")).toLocaleString("en-US")} USD`
+                    : <span className="text-gray-400 text-xs">default rate</span>}
                 </td>
-                <td className="px-4 py-3 text-gray-700 font-medium">
-                  {Number(inv.amount_kzt || 0).toLocaleString("ru-KZ")}
+                <td className="px-4 py-3 font-mono text-xs text-gray-500">
+                  {inv.invoice_number || "—"}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -229,13 +218,13 @@ export function InvoiceTable({ invoices: initialInvoices, employeeMap, sheetName
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <GenerateButton
-                      invoiceNumber={inv.invoice_number}
+                      employeeId={inv.employee_id}
                       sheetName={sheetName}
-                      onSuccess={(url) => handleGenerated(inv.invoice_number, url)}
+                      onSuccess={(link) => handleGenerated(inv.employee_id, link)}
                     />
-                    {inv.pdf_url && (
+                    {inv.drive_link && (
                       <a
-                        href={inv.pdf_url}
+                        href={inv.drive_link}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 text-xs text-[#2B45F5] hover:underline"

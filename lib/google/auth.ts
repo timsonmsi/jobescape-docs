@@ -1,31 +1,31 @@
 import { google } from "googleapis";
-import { JWT } from "google-auth-library";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/spreadsheets",
   "https://www.googleapis.com/auth/drive",
+  "https://www.googleapis.com/auth/documents",
 ];
 
-let _client: JWT | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _client: any | null = null;
 
-export function getGoogleAuthClient(): JWT {
+export function getGoogleAuthClient() {
   if (_client) return _client;
 
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!raw) {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
     throw new Error(
-      "GOOGLE_SERVICE_ACCOUNT_JSON environment variable is not set"
+      "Missing Google OAuth2 credentials. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN in .env.local"
     );
   }
 
-  const credentials = JSON.parse(raw);
+  const auth = new google.auth.OAuth2(clientId, clientSecret);
+  auth.setCredentials({ refresh_token: refreshToken, scope: SCOPES.join(" ") });
 
-  _client = new JWT({
-    email: credentials.client_email,
-    key: credentials.private_key.replace(/\\n/g, "\n"),
-    scopes: SCOPES,
-  });
-
+  _client = auth;
   return _client;
 }
 
@@ -35,4 +35,8 @@ export function getSheetsClient() {
 
 export function getDriveClient() {
   return google.drive({ version: "v3", auth: getGoogleAuthClient() });
+}
+
+export function getDocsClient() {
+  return google.docs({ version: "v1", auth: getGoogleAuthClient() });
 }

@@ -49,9 +49,9 @@ export function NdaRecentTable({ agreements }: NdaRecentTableProps) {
                       {ag.purpose}
                     </p>
                   </div>
-                  {ag.pdf_url && (
+                  {ag.drive_link && (
                     <a
-                      href={ag.pdf_url}
+                      href={ag.drive_link}
                       target="_blank"
                       rel="noreferrer"
                       className="shrink-0 text-blue-500 hover:text-blue-700"

@@ -1,22 +1,10 @@
 // TODO(auth): Add session check here
 
 import { LegalReviewClient } from "@/components/legal/LegalReviewClient";
-import { getSheetRows } from "@/lib/google/sheets";
-import type { LegalReviewRow } from "@/types/legal";
 
 export const dynamic = "force-dynamic";
 
-export default async function LegalPage() {
-  let history: LegalReviewRow[] = [];
-
-  const logsSheetId = process.env.LOGS_SHEETS_ID!;
-
-  try {
-    history = await getSheetRows<LegalReviewRow>("LegalReviews", logsSheetId);
-  } catch {
-    // LegalReviews sheet may not exist yet
-  }
-
+export default function LegalPage() {
   return (
     <div>
       <div className="mb-6">
@@ -26,7 +14,7 @@ export default async function LegalPage() {
         </p>
       </div>
 
-      <LegalReviewClient initialHistory={history} />
+      <LegalReviewClient />
     </div>
   );
 }

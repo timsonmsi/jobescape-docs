@@ -10,7 +10,7 @@ const nextConfig = {
       "pdf-parse",
     ],
     serverActions: {
-      bodySizeLimit: "10mb",
+      bodySizeLimit: "50mb",
     },
   },
 };

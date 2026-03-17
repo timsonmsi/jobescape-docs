@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   FileText,
@@ -11,21 +12,30 @@ import {
   Scale,
   Menu,
   X,
+  LogOut,
+  LogIn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/invoices", label: "Invoices", icon: FileText },
-  { href: "/nda", label: "NDA", icon: FileSignature },
-  { href: "/legal", label: "Legal Review", icon: Scale },
+const baseNavItems = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
+  { href: "/invoices", label: "Invoices", icon: FileText, adminOnly: true },
+  { href: "/nda", label: "NDA", icon: FileSignature, adminOnly: false },
+  { href: "/legal", label: "Legal Review", icon: Scale, adminOnly: false },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { data: session, status } = useSession();
 
+  // Don't render the sidebar on the login page
+  if (pathname === "/login") return null;
+
+  const isAdmin = session?.user?.role === "admin";
+  const isLoggedIn = status === "authenticated";
   const close = () => setOpen(false);
+  const navItems = baseNavItems.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <>
@@ -61,12 +71,9 @@ export function Sidebar() {
       {/* ── Sidebar panel ── */}
       <aside
         className={cn(
-          // Base: fixed overlay on mobile, slides in/out
           "fixed inset-y-0 left-0 z-50 w-56 bg-white border-r border-gray-200",
           "flex flex-col py-6 transition-transform duration-200 ease-in-out",
-          // Desktop: static, always visible
           "md:relative md:translate-x-0 md:z-auto md:transition-none",
-          // Mobile open/closed
           open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
@@ -128,10 +135,30 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Footer */}
+        {/* Footer — login / logout */}
         <div className="px-5 mt-auto pt-4 border-t border-gray-100">
-          <p className="text-xs text-gray-400">DocEscape Ops v0.1</p>
-          {/* TODO(auth): Add user profile / logout here */}
+          <p className="text-xs text-gray-400 mb-3">DocEscape Ops v0.1</p>
+          {isLoggedIn ? (
+            <div className="space-y-1">
+              <p className="text-xs text-gray-500 truncate">{session.user?.email}</p>
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+              >
+                <LogOut size={13} />
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              onClick={close}
+              className="flex items-center gap-2 text-xs text-gray-500 hover:text-[#2B45F5] font-medium transition-colors"
+            >
+              <LogIn size={13} />
+              Login
+            </Link>
+          )}
         </div>
       </aside>
     </>

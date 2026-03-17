@@ -13,7 +13,7 @@ export interface AgreementRow {
   receiving_name: string;
   effective_date: string;
   purpose: string;
-  pdf_url: string;
+  drive_link: string;
   drive_file_id: string;
   created_at: string;
 }

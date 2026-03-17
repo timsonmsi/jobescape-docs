@@ -7,11 +7,11 @@ import {
 import {
   downloadDriveFile,
   findDriveFileByName,
+  uploadDriveFile,
 } from "@/lib/google/drive";
 import { renderDocxTemplate } from "@/lib/docx/render";
 
 import { sanitizeFilename } from "@/lib/utils/sanitize";
-import { saveToBlob } from "@/lib/utils/blobStore";
 import type { NdaGenerateInput } from "@/types/nda";
 
 const AGREEMENTS_HEADERS = [
@@ -22,14 +22,14 @@ const AGREEMENTS_HEADERS = [
   "receiving_name",
   "effective_date",
   "purpose",
-  "pdf_url",
+  "drive_link",
   "drive_file_id",
   "created_at",
 ];
 
 export interface GenerateNdaResult {
   agreementId: string;
-  pdfUrl: string;
+  driveLink: string;
   driveFileId: string;
 }
 
@@ -45,10 +45,11 @@ export async function generateNda(
   if (!logsSheetId) throw new Error("Missing environment variable: LOGS_SHEETS_ID");
   const templateFolderId = process.env.DRIVE_NDA_TEMPLATES_FOLDER_ID;
   if (!templateFolderId) throw new Error("Missing environment variable: DRIVE_NDA_TEMPLATES_FOLDER_ID");
-  if (!process.env.BLOB_READ_WRITE_TOKEN) throw new Error("Missing environment variable: BLOB_READ_WRITE_TOKEN");
+  const ndaOutputFolderId = process.env.DRIVE_NDA_OUTPUT_FOLDER_ID;
+  if (!ndaOutputFolderId) throw new Error("Missing environment variable: DRIVE_NDA_OUTPUT_FOLDER_ID");
 
-  // 1. Ensure Agreements sheet exists in the logs spreadsheet
-  await ensureSheetExists("Agreements", AGREEMENTS_HEADERS, logsSheetId);
+  // 1. Ensure NDAs sheet exists in the logs spreadsheet
+  await ensureSheetExists("NDAs", AGREEMENTS_HEADERS, logsSheetId);
 
   // 2. Find the right NDA template in Drive
   //    Expected name pattern: NDA_${disclosure_party}_${receiving_type_lowercase}_TEMPLATE
@@ -99,8 +100,7 @@ export async function generateNda(
   }
   const docxBuffer = renderDocxTemplate(templateBuffer, templateData);
 
-  // 5. Upload DOCX to Vercel Blob under nda/YYYY-MM/
-  const monthFolder = format(new Date(), "yyyy-MM");
+  // 5. Upload DOCX to Drive NDA output folder
   const agreementId = uuid();
   const receiverLabel =
     input.receiving_type === "Individual"
@@ -109,11 +109,16 @@ export async function generateNda(
   const filename = sanitizeFilename(
     `NDA_${input.disclosure_party}_${input.receiving_type}_${input.effective_date}_${receiverLabel}.docx`
   );
-  const pdfPath = await saveToBlob(`nda/${monthFolder}`, filename, docxBuffer);
+  const { id: driveFileId, webViewLink: driveLink } = await uploadDriveFile({
+    name: filename,
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    buffer: docxBuffer,
+    parentFolderId: ndaOutputFolderId,
+  });
 
-  // 6. Append to Agreements sheet in logs spreadsheet
+  // 6. Append to NDAs sheet in logs spreadsheet
   const now = new Date().toISOString();
-  await appendSheetRow("Agreements", [
+  await appendSheetRow("NDAs", [
     agreementId,
     "NDA",
     input.disclosure_party,
@@ -121,10 +126,10 @@ export async function generateNda(
     receiverLabel,
     input.effective_date,
     input.purpose,
-    pdfPath,
-    filename,
+    driveLink,
+    driveFileId,
     now,
   ], logsSheetId);
 
-  return { agreementId, pdfUrl: pdfPath, driveFileId: filename };
+  return { agreementId, driveLink, driveFileId };
 }

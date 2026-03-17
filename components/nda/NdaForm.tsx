@@ -67,7 +67,7 @@ type FormData = z.infer<typeof schema>;
 
 interface GenerateResult {
   agreementId: string;
-  pdfUrl: string;
+  driveLink: string;
   driveFileId: string;
 }
 
@@ -234,7 +234,7 @@ export function NdaForm() {
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
           <p className="text-sm font-medium text-green-800 mb-1">NDA ready!</p>
           <a
-            href={result.pdfUrl}
+            href={result.driveLink}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"

@@ -1,9 +1,13 @@
+"use client";
+
+import { useSession } from "next-auth/react";
 import { FileText, FileSignature, Scale } from "lucide-react";
 import { ModuleTile } from "@/components/dashboard/ModuleTile";
 
-// TODO(auth): Add session check here
-
 export default function DashboardPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "admin";
+
   return (
     <div>
       <div className="mb-8">
@@ -16,12 +20,14 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <ModuleTile
-          title="Invoices"
-          description="Generate PDF invoices from Google Sheets data and DOCX templates. Upload to Drive and track status."
-          href="/invoices"
-          icon={FileText}
-        />
+        {isAdmin && (
+          <ModuleTile
+            title="Invoices"
+            description="Generate PDF invoices from Google Sheets data and DOCX templates. Upload to Drive and track status."
+            href="/invoices"
+            icon={FileText}
+          />
+        )}
         <ModuleTile
           title="NDA Generator"
           description="Create Non-Disclosure Agreements from templates. Choose disclosure party and receiving type."
@@ -35,7 +41,6 @@ export default function DashboardPage() {
           icon={Scale}
         />
       </div>
-
     </div>
   );
 }

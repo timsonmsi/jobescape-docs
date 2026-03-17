@@ -60,7 +60,7 @@ export function LegalUpload({ onUpload, loading }: LegalUploadProps) {
             {loading ? "Analyzing document…" : "Drop your document here"}
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            Supported: PDF, DOCX, TXT — max 10 MB
+            Supported: PDF, DOCX, TXT — max 50 MB
           </p>
         </div>
 

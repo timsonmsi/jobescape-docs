@@ -3,7 +3,6 @@ import { NdaRecentTable } from "@/components/nda/NdaRecentTable";
 import { NdaReviewPanel } from "@/components/nda/NdaReviewPanel";
 import { getSheetRows } from "@/lib/google/sheets";
 import type { AgreementRow } from "@/types/nda";
-import type { NdaReviewRow } from "@/types/legal";
 
 // TODO(auth): Add session check here
 
@@ -11,13 +10,11 @@ export const dynamic = "force-dynamic";
 
 export default async function NdaPage() {
   let agreements: AgreementRow[] = [];
-  let ndaReviews: NdaReviewRow[] = [];
 
   const logsSheetId = process.env.LOGS_SHEETS_ID!;
 
   await Promise.allSettled([
-    getSheetRows<AgreementRow>("Agreements", logsSheetId).then((r) => { agreements = r; }),
-    getSheetRows<NdaReviewRow>("NdaReviews", logsSheetId).then((r) => { ndaReviews = r; }),
+    getSheetRows<AgreementRow>("NDAs", logsSheetId).then((r) => { agreements = r; }),
   ]);
 
   return (
@@ -35,7 +32,7 @@ export default async function NdaPage() {
       </div>
 
       {/* AI-powered review for counterparty NDAs */}
-      <NdaReviewPanel initialHistory={ndaReviews} />
+      <NdaReviewPanel />
     </div>
   );
 }

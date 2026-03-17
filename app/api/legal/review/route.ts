@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { reviewLegalDocument } from "@/lib/legal/service";
 import { apiOk, apiError } from "@/lib/utils/response";
 
+export const maxDuration = 120; // allow up to 2 min for LLM analysis
+
 // TODO(auth): Add session validation middleware here
 
 const ALLOWED_TYPES = [
@@ -10,7 +12,7 @@ const ALLOWED_TYPES = [
   "text/plain",
 ];
 
-const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
 
 export async function POST(req: NextRequest) {
   let formData: FormData;

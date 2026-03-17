@@ -1,6 +1,4 @@
 import { appendSheetRow, ensureSheetExists } from "@/lib/google/sheets";
-import { saveToBlob } from "@/lib/utils/blobStore";
-import { format } from "date-fns";
 import { v4 as uuid } from "uuid";
 import type { RiskReport, NdaReviewRow } from "@/types/legal";
 
@@ -108,39 +106,30 @@ async function callLlm(documentText: string): Promise<RiskReport> {
     }
   }
 
-  if (provider === "openai") {
+  if (provider === "openai" || provider === "openrouter") {
     const OpenAI = (await import("openai")).default;
-    const client = new OpenAI({ apiKey });
+    const client = new OpenAI({
+      apiKey,
+      ...(provider === "openrouter" && { baseURL: "https://openrouter.ai/api/v1" }),
+    });
     const res = await client.chat.completions.create({
       model,
       messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
+      // response_format not used — many OpenRouter models (e.g. Qwen) don't support it
     });
-    const content = res.choices[0].message.content!;
-    return JSON.parse(content) as RiskReport;
+    const content = res.choices[0].message.content ?? "";
+    try {
+      return JSON.parse(content) as RiskReport;
+    } catch {
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) return JSON.parse(match[0]) as RiskReport;
+      throw new Error("LLM returned invalid JSON response");
+    }
   }
 
-  throw new Error(`Unknown LLM_PROVIDER: "${provider}". Use "anthropic" or "openai".`);
+  throw new Error(`Unknown LLM_PROVIDER: "${provider}". Use "anthropic", "openai", or "openrouter".`);
 }
 
-function formatReport(report: RiskReport, filename: string): string {
-  return [
-    "NDA REVIEW REPORT",
-    `File: ${filename}`,
-    `Risk Score: ${report.risk_score}/100`,
-    "",
-    "SUMMARY",
-    report.summary,
-    "",
-    `RED FLAGS (${report.red_flags.length})`,
-    ...report.red_flags.map(
-      (f, i) => `${i + 1}. [${f.severity}] ${f.clause}\n   ${f.explanation}`
-    ),
-    "",
-    "RECOMMENDATIONS",
-    ...report.recommendations.map((r, i) => `${i + 1}. ${r}`),
-  ].join("\n");
-}
 
 export async function reviewNdaDocument(
   fileBuffer: Buffer,
@@ -153,14 +142,8 @@ export async function reviewNdaDocument(
   const documentText = await extractText(fileBuffer, mimeType);
   const report = await callLlm(documentText);
 
-  const monthFolder = format(new Date(), "yyyy-MM");
   const reviewId = uuid();
-  const reportFilename = `NdaReview_${filename}_${reviewId.slice(0, 8)}.txt`;
-  const reportPath = await saveToBlob(
-    `nda-reviews/${monthFolder}`,
-    reportFilename,
-    Buffer.from(formatReport(report, filename), "utf-8")
-  );
+  const reportPath = "";
 
   const createdAt = new Date().toISOString();
 

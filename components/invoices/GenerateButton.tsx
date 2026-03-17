@@ -6,25 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Loader2, FileDown } from "lucide-react";
 
 interface GenerateButtonProps {
-  invoiceNumber: string;
+  employeeId: string;
   sheetName: string;
-  onSuccess: (pdfUrl: string) => void;
+  onSuccess: (driveLink: string) => void;
 }
 
-export function GenerateButton({ invoiceNumber, sheetName, onSuccess }: GenerateButtonProps) {
+export function GenerateButton({ employeeId, sheetName, onSuccess }: GenerateButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const handleGenerate = async () => {
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/invoices/${encodeURIComponent(invoiceNumber)}/generate?sheet=${encodeURIComponent(sheetName)}`,
+        `/api/invoices/${encodeURIComponent(employeeId)}/generate?sheet=${encodeURIComponent(sheetName)}`,
         { method: "POST" }
       );
       const json = await res.json();
       if (!json.ok) throw new Error(json.message);
-      toast.success("Invoice PDF generated successfully");
-      onSuccess(json.data.pdfUrl);
+      toast.success("Invoice generated successfully");
+      onSuccess(json.data.driveLink);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Generation failed");
     } finally {
@@ -45,7 +45,7 @@ export function GenerateButton({ invoiceNumber, sheetName, onSuccess }: Generate
       ) : (
         <FileDown size={14} />
       )}
-      <span className="ml-1.5">{loading ? "Generating…" : "Generate Invoice"}</span>
+      <span className="ml-1.5">{loading ? "Generating…" : "Generate"}</span>
     </Button>
   );
 }

@@ -1,7 +1,5 @@
 import { v4 as uuid } from "uuid";
-import { format } from "date-fns";
 import { appendSheetRow, ensureSheetExists } from "@/lib/google/sheets";
-import { saveToBlob } from "@/lib/utils/blobStore";
 import type { RiskReport, LegalReviewRow } from "@/types/legal";
 
 const LEGAL_REVIEWS_HEADERS = [
@@ -86,8 +84,8 @@ async function extractText(
 
 /** Call the LLM to get a risk report */
 async function callLlm(documentText: string): Promise<RiskReport> {
-  const provider = (process.env.LLM_PROVIDER ?? "anthropic").toLowerCase();
-  const model = process.env.LLM_MODEL ?? "claude-opus-4-6";
+  const provider = (process.env.LLM_PROVIDER ?? "openrouter").toLowerCase();
+  const model = process.env.LLM_MODEL ?? "openai/gpt-4o";
   const apiKey = process.env.LLM_API_KEY;
 
   if (!apiKey) {
@@ -102,6 +100,27 @@ async function callLlm(documentText: string): Promise<RiskReport> {
 
   const prompt = REVIEW_PROMPT.replace("{DOCUMENT_TEXT}", truncated);
 
+  if (provider === "openrouter" || provider === "openai") {
+    const OpenAI = (await import("openai")).default;
+    const client = new OpenAI({
+      apiKey,
+      ...(provider === "openrouter" && { baseURL: "https://openrouter.ai/api/v1" }),
+    });
+    const res = await client.chat.completions.create({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      // response_format not used — many OpenRouter models (e.g. Qwen) don't support it
+    });
+    const content = res.choices[0].message.content ?? "";
+    try {
+      return JSON.parse(content) as RiskReport;
+    } catch {
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) return JSON.parse(match[0]) as RiskReport;
+      throw new Error("LLM returned invalid JSON response");
+    }
+  }
+
   if (provider === "anthropic") {
     const Anthropic = (await import("@anthropic-ai/sdk")).default;
     const client = new Anthropic({ apiKey });
@@ -114,50 +133,13 @@ async function callLlm(documentText: string): Promise<RiskReport> {
     try {
       return JSON.parse(text) as RiskReport;
     } catch {
-      // Try to extract JSON from the response
       const match = text.match(/\{[\s\S]*\}/);
       if (match) return JSON.parse(match[0]) as RiskReport;
       throw new Error("LLM returned invalid JSON response");
     }
   }
 
-  if (provider === "openai") {
-    const OpenAI = (await import("openai")).default;
-    const client = new OpenAI({ apiKey });
-    const res = await client.chat.completions.create({
-      model,
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-    });
-    const content = res.choices[0].message.content!;
-    return JSON.parse(content) as RiskReport;
-  }
-
-  throw new Error(`Unknown LLM_PROVIDER: "${provider}". Use "anthropic" or "openai".`);
-}
-
-function formatReportAsText(
-  report: RiskReport,
-  filename: string
-): string {
-  const lines = [
-    "LEGAL REVIEW REPORT",
-    `File: ${filename}`,
-    `Risk Score: ${report.risk_score}/100`,
-    "",
-    "SUMMARY",
-    report.summary,
-    "",
-    `RED FLAGS (${report.red_flags.length})`,
-    ...report.red_flags.map(
-      (f, i) =>
-        `${i + 1}. [${f.severity}] ${f.clause}\n   ${f.explanation}`
-    ),
-    "",
-    `RECOMMENDATIONS`,
-    ...report.recommendations.map((r, i) => `${i + 1}. ${r}`),
-  ];
-  return lines.join("\n");
+  throw new Error(`Unknown LLM_PROVIDER: "${provider}". Use "openrouter", "openai", or "anthropic".`);
 }
 
 /**
@@ -169,9 +151,9 @@ export async function reviewLegalDocument(
   filename: string,
   mimeType: string
 ): Promise<{ report: RiskReport; row: LegalReviewRow }> {
-  // 1. Ensure LegalReviews sheet exists in the logs spreadsheet
+  // 1. Ensure "Legal Reviews" sheet exists in the logs spreadsheet
   const logsSheetId = process.env.LOGS_SHEETS_ID!;
-  await ensureSheetExists("LegalReviews", LEGAL_REVIEWS_HEADERS, logsSheetId);
+  await ensureSheetExists("Legal Reviews", LEGAL_REVIEWS_HEADERS, logsSheetId);
 
   // 2. Extract text from document
   const documentText = await extractText(fileBuffer, mimeType);
@@ -179,20 +161,13 @@ export async function reviewLegalDocument(
   // 3. Call LLM (returns stub if no API key)
   const report = await callLlm(documentText);
 
-  // 4. Save report locally under public/generated/legal/YYYY-MM/
-  const monthFolder = format(new Date(), "yyyy-MM");
+  // 4. Build review ID (full report text is stored in the sheet summary column)
   const reviewId = uuid();
-  const reportFilename = `LegalReview_${filename}_${reviewId.slice(0, 8)}.txt`;
-  const reportText = formatReportAsText(report, filename);
-  const reportPath = await saveToBlob(
-    `legal/${monthFolder}`,
-    reportFilename,
-    Buffer.from(reportText, "utf-8")
-  );
+  const reportPath = "";
 
-  // 5. Append to LegalReviews sheet in logs spreadsheet
+  // 5. Append to "Legal Reviews" sheet in logs spreadsheet
   const now = new Date().toISOString();
-  await appendSheetRow("LegalReviews", [
+  await appendSheetRow("Legal Reviews", [
     reviewId,
     filename,
     "standard",

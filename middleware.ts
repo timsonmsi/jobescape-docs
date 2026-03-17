@@ -1,20 +1,22 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { NextRequest, NextResponse } from "next/server";
 
-// TODO(auth): Replace this stub with real auth (NextAuth.js, Clerk, etc.)
-// Example with NextAuth:
-//   import { withAuth } from "next-auth/middleware";
-//   export default withAuth({ pages: { signIn: "/login" } });
-//   export const config = { matcher: ["/invoices", "/nda", "/legal", "/api/:path*"] };
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-export function middleware(_request: NextRequest) {
-  // Auth is disabled in MVP — all routes are public
+  // Invoices are admin-only — everything else is public
+  if (pathname.startsWith("/invoices") || pathname.startsWith("/api/invoices")) {
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token || token.role !== "admin") {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    // Match all routes except static files and Next.js internals
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/auth).*)",
   ],
 };

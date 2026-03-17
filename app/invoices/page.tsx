@@ -21,7 +21,7 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
   const now = new Date();
   const month = searchParams.month ?? MONTH_NAMES[now.getMonth()];
   const year = Number(searchParams.year ?? now.getFullYear());
-  const sheetName = `${month} ${year}`;
+  const sheetName = `${month}-${year}`;
 
   let invoices: InvoiceRow[] = [];
   let employeeMap: Record<string, string> = {};
@@ -35,7 +35,7 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
     ]);
     invoices = invoiceRows;
     employeeMap = Object.fromEntries(
-      employeeRows.map((e) => [e.employee_id, e.supplier_name])
+      employeeRows.map((e) => [e.employee_id, `${e.first_name} ${e.last_name}`])
     );
     if (invoices.length === 0) sheetMissing = true;
   } catch (err) {
@@ -86,7 +86,7 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
             </p>
             <p className="text-xs text-gray-400 mt-1">
               Create a tab named exactly &ldquo;{sheetName}&rdquo; in your Google Sheets
-              with the invoice columns.
+              with columns: employee_id, amount, status, invoice_number, drive_file_id, drive_link, generated_at
             </p>
           </div>
         </div>

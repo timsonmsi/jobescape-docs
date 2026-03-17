@@ -1,17 +1,15 @@
 import { NextRequest } from "next/server";
-import { generateInvoicePdf } from "@/lib/invoices/service";
+import { generateInvoiceDoc } from "@/lib/invoices/service";
 import { apiOk, apiError } from "@/lib/utils/response";
-
-// TODO(auth): Add session validation middleware here
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
+  const { id: employeeId } = params;
 
-  if (!id) {
-    return apiError("Invoice number is required", 400);
+  if (!employeeId) {
+    return apiError("employee_id is required", 400);
   }
 
   const sheetName = req.nextUrl.searchParams.get("sheet");
@@ -20,11 +18,11 @@ export async function POST(
   }
 
   try {
-    const result = await generateInvoicePdf(id, sheetName);
-    return apiOk("Invoice PDF generated successfully", result);
+    const result = await generateInvoiceDoc(employeeId, sheetName);
+    return apiOk("Invoice generated successfully", result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[api/invoices/generate]", id, sheetName, message);
+    console.error("[api/invoices/generate]", employeeId, sheetName, message);
     return apiError(message);
   }
 }

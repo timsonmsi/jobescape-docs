@@ -1,6 +1,8 @@
 import { getDriveClient } from "./auth";
 import { Readable } from "stream";
 
+const INVOICES_ROOT = () => process.env.DRIVE_INVOICES_ROOT_FOLDER_ID!;
+
 /** Retry wrapper */
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
   let lastError: unknown;
@@ -131,6 +133,47 @@ export async function findDriveFileByName(
     });
     return res.data.files?.[0]?.id ?? null;
   });
+}
+
+/**
+ * Copy a Google Doc template to a destination folder.
+ * Returns { id, webViewLink } of the new document.
+ */
+export async function copyGoogleDoc(
+  templateDocId: string,
+  destFolderId: string,
+  fileName: string
+): Promise<{ id: string; webViewLink: string }> {
+  return withRetry(async () => {
+    const drive = getDriveClient();
+    const res = await drive.files.copy({
+      fileId: templateDocId,
+      supportsAllDrives: true,
+      requestBody: {
+        name: fileName,
+        parents: [destFolderId],
+      },
+      fields: "id,webViewLink",
+    });
+    return {
+      id: res.data.id!,
+      webViewLink:
+        res.data.webViewLink ??
+        `https://docs.google.com/document/d/${res.data.id}/edit`,
+    };
+  });
+}
+
+/**
+ * Get or create a "First Last" subfolder inside DRIVE_INVOICES_ROOT_FOLDER_ID.
+ * Returns the folder ID.
+ */
+export async function getOrCreateEmployeeFolder(
+  firstName: string,
+  lastName: string
+): Promise<string> {
+  const folderName = `${firstName} ${lastName}`;
+  return ensureDriveFolder(folderName, INVOICES_ROOT());
 }
 
 /**

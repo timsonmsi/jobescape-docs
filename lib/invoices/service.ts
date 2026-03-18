@@ -3,7 +3,7 @@ import { copyGoogleDoc, getOrCreateEmployeeFolder } from "@/lib/google/drive";
 import { replaceDocText } from "@/lib/google/docs";
 import type { InvoiceRow, EmployeeRow, CompanyRow } from "@/types/invoice";
 
-const TEMPLATE_DOC_ID = "1HNF8YxbXVhJikMaHR2iEysmw10Q9EvMe6ErkR8FqS-w";
+const TEMPLATE_DOC_ID = "1yURP0a3q-s0UP5Ft_ddQElpWCM34zYyzpbyqH6GYNSI";
 
 const MONTH_NUMBERS: Record<string, string> = {
   January: "01", February: "02", March: "03", April: "04",
